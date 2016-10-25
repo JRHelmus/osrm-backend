@@ -123,8 +123,8 @@ class InternalDataFacade final : public BaseDataFacade
         {
             throw util::exception("Could not open " + properties_path.string() + " for reading.");
         }
-        auto PropertiesSize = storage::io::readPropertiesSize();
-        storage::io::readProperties(in_stream, &m_profile_properties, PropertiesSize);
+        const auto properties_size = storage::io::readPropertiesCount();
+        storage::io::readProperties(in_stream, &m_profile_properties, properties_size);
     }
 
     void LoadLaneTupleIdPairs(const boost::filesystem::path &lane_data_path)
@@ -151,7 +151,7 @@ class InternalDataFacade final : public BaseDataFacade
             throw util::exception("Could not open " + timestamp_path.string() + " for reading.");
         }
 
-        auto timestamp_size = storage::io::readTimestampCharCount(timestamp_stream);
+        const auto timestamp_size = storage::io::readNumberOfBytes(timestamp_stream);
         m_timestamp.resize(timestamp_size);
         storage::io::readTimestamp(timestamp_stream, &m_timestamp.front(), timestamp_size);
     }
@@ -164,7 +164,7 @@ class InternalDataFacade final : public BaseDataFacade
             throw util::exception("Could not open " + hsgr_path.string() + " for reading.");
         }
 
-        auto header = storage::io::readHSGRHeader(hsgr_input_stream);
+        const auto header = storage::io::readHSGRHeader(hsgr_input_stream);
         m_check_sum = header.checksum;
 
         util::ShM<QueryGraph::NodeArrayEntry, false>::vector node_list(header.number_of_nodes);
@@ -190,7 +190,7 @@ class InternalDataFacade final : public BaseDataFacade
             throw util::exception("Could not open " + nodes_file_path.string() + " for reading.");
         }
 
-        auto number_of_coordinates = storage::io::readElementCount<std::uint32_t>(nodes_input_stream);
+        const auto number_of_coordinates = storage::io::readElementCount(nodes_input_stream);
         m_coordinate_list.resize(number_of_coordinates);
         m_osmnodeid_list.reserve(number_of_coordinates);
         storage::io::readNodes(
@@ -201,7 +201,7 @@ class InternalDataFacade final : public BaseDataFacade
         {
             throw util::exception("Could not open " + edges_file_path.string() + " for reading.");
         }
-        auto number_of_edges = storage::io::readElementCount<std::uint32_t>(edges_input_stream);
+        const auto number_of_edges = storage::io::readElementCount(edges_input_stream);
         m_via_geometry_list.resize(number_of_edges);
         m_name_ID_list.resize(number_of_edges);
         m_turn_instruction_list.resize(number_of_edges);
@@ -292,7 +292,7 @@ class InternalDataFacade final : public BaseDataFacade
         }
         BOOST_ASSERT(datasources_stream);
 
-        auto number_of_datasources = storage::io::readElementCount<std::uint64_t>(datasources_stream);
+        const auto number_of_datasources = storage::io::readElementCount(datasources_stream);
         if (number_of_datasources > 0)
         {
             m_datasource_list.resize(number_of_datasources);
@@ -308,15 +308,15 @@ class InternalDataFacade final : public BaseDataFacade
         }
         BOOST_ASSERT(datasourcenames_stream);
 
-        auto datasource_names_data = storage::io::readDatasourceNames(datasourcenames_stream);
+        const auto datasource_names_data = storage::io::readDatasourceNames(datasourcenames_stream);
         m_datasource_names.resize(datasource_names_data.lengths.size());
-        for (std::uint32_t i = 0; i < datasource_names_data.lengths.size(); ++i)
+        for (std::size_t i = 0; i < datasource_names_data.lengths.size(); ++i)
         {
             auto name_begin =
                 datasource_names_data.names.begin() + datasource_names_data.offsets[i];
             auto name_end = datasource_names_data.names.begin() + datasource_names_data.offsets[i] +
                             datasource_names_data.lengths[i];
-            m_datasource_names[i] = std::move(std::string(name_begin, name_end));
+            m_datasource_names[i] = std::string(name_begin, name_end);
         }
     }
 
